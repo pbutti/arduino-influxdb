@@ -50,8 +50,6 @@ def ReadLoop(args, queue: persistent_queue.Queue):
         module, fn_name = args.serial_function.rsplit(".", 1)
         serial_fn = getattr(importlib.import_module(module), fn_name)
         
-    print("In the readLoop")
-        
     try:
         logging.debug("Read loop started")
         with serial.serial_for_url(args.device,
@@ -70,9 +68,7 @@ def ReadLoop(args, queue: persistent_queue.Queue):
                 # Parse 'line', either with or without timestamp.
                 words = line.strip().split(" ")
 
-                print("DEBUG")
-                print(words)
-                
+                logging.debug(words)
                 if len(words) == 2:
                     (tags, values) = words
                     timestamp = int(time.time() * 1000000000)
@@ -84,8 +80,8 @@ def ReadLoop(args, queue: persistent_queue.Queue):
                 tags: str = ",".join(t for t in (tags, args.tags) if t)
                 
                 
-                print("Placing in the queue:")
-                print("{0} {1} {2:d}".format(tags, values, timestamp))
+                logging.debug("Placing in the queue:")
+                logging.debug("{0} {1} {2:d}".format(tags, values, timestamp))
                     
                 queue.put("{0} {1} {2:d}".format(tags, values, timestamp))
     except:
@@ -99,15 +95,14 @@ def ReadLoop(args, queue: persistent_queue.Queue):
 def WriteLoop(args, queue: persistent_queue.Queue, write_api):
     
     logging.debug("Write loop started")
-    print("Write loop started")
     
     warn_on_status: FrozenSet[int] = frozenset(
         int(status) for status in args.warn_on_status)
     try:
         influxdb_line: str
         for influxdb_line in queue.get_blocking(tick=60):
-            print("Writer:: line to influx db")
-            print(influxdb_line)
+            logging.debug("Writer:: line to influx db")
+            logging.debug(influxdb_line)
             #Style: plant,pin=A0 moisture=1 1668676843327379968
             #plant: -> measurement name
             #pin=A0 -> tag
@@ -253,7 +248,7 @@ def main():
             reader = threading.Thread(name="read",
                                       target=RunAndDie,
                                       args=(ReadLoop, args, queue))
-
+            
             print("Starting writer thread")
             writer = threading.Thread(name="write",
                                       target=RunAndDie,
